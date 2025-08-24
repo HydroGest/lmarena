@@ -1,3 +1,20 @@
+/******************************************************************************
+ *                                                                            *
+ *  本程序是 astrbot_plugin_lmarena 的衍生作品                                   *
+ *  原始项目: https://github.com/Zhalslar/astrbot_plugin_lmarena               *
+ *  原作者: Zhalslar                                                           *
+ *                                                                            *
+ *  本程序是自由软件：您可以根据自由软件基金会发布的GNU通用公共许可证第3版或             *
+ *  （您选择的）任何更高版本的条款重新分发和/或修改它                                 *
+ *                                                                            *
+ *  本程序基于希望有用而分发，但不提供任何担保；包括但不限于对特定用途的适销性            *
+ *  或适用性的暗示担保。详情请参阅GNU通用公共许可证。                                *
+ *                                                                            *
+ *  您应该已经收到GNU通用公共许可证的副本。如果没有，请参阅                           *
+ *  <https://www.gnu.org/licenses/>。                                         *
+ *                                                                            *
+ ******************************************************************************/
+
 import { Context, Schema, segment, h } from 'koishi';
 import { promises as fs } from 'fs';
 import path from 'path';

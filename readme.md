@@ -62,4 +62,7 @@ plugins:
 
 ## 许可证
 
-本项目采用 "MIT 许可证" (LICENSE)。
+本项目采用 [GNU GENERAL PUBLIC LICENSE v3.0](LICENSE) 许可证。
+
+本重构代码是原始项目 [astrbot_plugin_lmarena](https://github.com/Zhalslar/astrbot_plugin_lmarena) 的衍生作品，
+遵循 GPL-3.0 许可证要求发布。
