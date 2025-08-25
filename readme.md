@@ -1,6 +1,6 @@
-# koishi-plugin-lmarena-ai
+# koishi-plugin-lmarena
 
-[![npm](https://img.shields.io/npm/v/koishi-plugin-lmarena-ai?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-lmarena-ai)
+[![npm](https://img.shields.io/npm/v/koishi-plugin-lmarena?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-lmarena)
 
 🎯 **一键将图片转换为手办风格！**
 

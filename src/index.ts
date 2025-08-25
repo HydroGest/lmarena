@@ -1,7 +1,7 @@
 import { Context, Schema, h, Logger, sleep } from 'koishi'
 import { } from 'koishi-plugin-puppeteer'
 
-export const name = 'lmarena-ai'
+export const name = 'lmarena'
 export const inject = ['http', 'logger', 'i18n', 'puppeteer']
 
 export const Config: Schema = Schema.intersect([
@@ -66,7 +66,7 @@ export const usage = `
 ---
 `;
 
-const logger = new Logger('DEV:lmarena-ai')
+const logger = new Logger('DEV:lmarena')
 
 export function apply(ctx: Context, config) {
   let isActive = true
