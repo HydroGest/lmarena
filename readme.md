@@ -1,68 +1,145 @@
-# LMarena 手办化插件
+# koishi-plugin-lmarena-ai
 
-一个 Koishi 插件，用于对接 LMarena 服务调用 nano-banana 等模型进行图片生成，特别适用于手办化效果。
+[![npm](https://img.shields.io/npm/v/koishi-plugin-lmarena-ai?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-lmarena-ai)
 
-灵感来源：https://github.com/Zhalslar/astrbot_plugin_lmarena/
+🎯 **一键将图片转换为手办风格！**
 
-## 功能特性
+基于 LMArena Bridge API，支持多种 AI 绘图模型，让你的图片瞬间变成精美手办。
 
-- 🖼️ 支持多种图片输入方式：直接发送、回复消息、@用户头像
-- ✨ 内置多种手办化风格："手办化"、"手办化2"、"手办化3"
-- 🎨 支持自定义描述词生成（bnn 命令）
-- 🔄 自动处理 GIF 图片（提取第一帧）
-- 📦 可选的图片保存功能
-- ⚙️ 高度可配置的服务器参数
+## 🚀 后端部署教程
 
-## 安装指南
+> **重要提示**：这里以【flux-1-kontext-pro】模型为例。
+> 
+> 需要有桌面环境和 Python 环境。
 
-### 前置要求
+### 第一步：安装浏览器插件
 
-1. 确保已安装 "Koishi" (https://koishi.chat/) 机器人框架
-2. 已部署 "LMarenaBridge" (https://github.com/Lianues/LMarenaBridge) 服务
-3. Node.js 16+ 环境
+1. 访问：https://github.com/Lianues/LMArenaBridge/blob/main/TampermonkeyScript/LMArenaApiBridge.js
+2. 打开 Tampermonkey 扩展的管理面板
+3. 点击"添加新脚本"或"Create a new script"
+4. 将 `TampermonkeyScript/LMArenaApiBridge.js` 文件中的所有代码复制并粘贴到编辑器中
+5. 保存脚本
+6. **注意：** 请按照 [tampermonkey#Q209](https://www.tampermonkey.net/faq.php#Q209) 操作，开启开发者模式。
 
-### 安装插件
+### 第二步：部署 Python 后端
 
-通过 Koishi 控制台界面安装
+```bash
+# 克隆项目
+git clone https://github.com/Lianues/LMarenaBridge
+cd LMarenaBridge
 
-### 配置说明
+# 安装依赖
+pip install -r requirements.txt
 
-```yml
-plugins:
-  lmarena:
-    prefix: true          # 是否启用触发前缀
-    baseUrl: http://127.0.0.1:5102  # LMarena 服务地址
-    model: nano-banana    # 使用的模型
-    saveImage: false      # 是否保存生成的图片
-    retries: 2            # 失败重试次数
+# 启动 API 服务器（保持运行）
+python api_server.py
 ```
 
-## 使用说明
+**注意**：这个项目必须先运行 `python api_server.py` 才能运行其他附属 py 文件。
 
-### 基本命令
+### 第三步：开始部署服务
 
-| 命令 | 描述 |
-|------|------|
-| `手办化` + 图片 | 使用默认手办化风格处理图片 |
-| `手办化2` + 图片 | 使用第二种手办化风格 |
-| `手办化3` + 图片 | 使用第三种手办化风格 |
-| `bnn 描述词` + 图片 | 使用自定义描述词生成图片 |
-| `手办化@用户` | 使用用户头像生成手办化图片 |
+#### 3.1 更新模型列表
+1. 保持第一个 cmd 窗口运行的 `python api_server.py`。
+2. 使用安装了脚本的浏览器，打开：https://lmarena.ai/?mode=direct&chat-modality=image
+3. 在网页上方选择模型为【flux-1-kontext-pro】
+4. 新开一个 cmd 窗口，运行：`python model_updater.py`
+5. 运行完成后关闭这个窗口
 
-## 常见问题
+#### 3.2 获取模型 Session ID
+3. 使用安装了脚本的浏览器，打开：https://lmarena.ai/?mode=direct&chat-modality=image
+2. 新开一个 cmd 终端，运行：`python id_updater.py`（**保持运行状态**）
+4. 在网页上方选择模型为【flux-1-kontext-pro】
+5. 输入任意提示词，进行交互生成图片
+6. 等待模型返回图片后，**点击图片右上角的重试按钮**
+7. 这样就算是完成了【python id_updater.py】的配置
+8. 关掉运行 `id_updater.py` 的 cmd 窗口
+9. 现在仅剩下第一个cmd 窗口运行的 `python api_server.py`。
 
-### 图片生成失败怎么办？
+#### 3.3 编辑配置文件
 
-1. 检查 LMarena 服务是否正常运行
-2. 确认配置中的 
-"baseUrl" 正确
-3. 尝试增加 
-"retries" 配置值
-4. 检查网络连接是否正常
+**步骤一：查找模型 ID**
+1. 打开项目文件夹中的 `available_models.json` 文件
+2. 搜索模型名称【flux-1-kontext-pro】
+3. 找到类似这样的数据：
+```json
+{
+    "id": "43390b9c-cf16-4e4e-a1be-3355bb5b6d5e",
+    "publicName": "flux-1-kontext-pro",
+    "organization": "bfl",
+    "provider": "fal",
+    "capabilities": {
+        "inputCapabilities": {
+            "text": true,
+            "image": {
+                "multipleImages": false
+            }
+        },
+        "outputCapabilities": {
+            "image": {
+                "aspectRatios": [
+                    "1:1"
+                ]
+            }
+        }
+    }
+}
+```
+4. 记下这个 `id` 值：`43390b9c-cf16-4e4e-a1be-3355bb5b6d5e`
 
-## 许可证
+**步骤二：处理 ID**
+把 id 后面加上一个 `:image`，变成：
+```
+43390b9c-cf16-4e4e-a1be-3355bb5b6d5e:image
+```
 
-本项目采用 [GNU GENERAL PUBLIC LICENSE v3.0](LICENSE) 许可证。
+**步骤三：编辑 models.json**
+1. 打开项目文件夹中的 `models.json` 文件
+2. 这个 json 文件默认内容是：
+```json
+{
+    "gemini-2.5-pro": "e2d9d353-6dbe-4414-bf87-bd289d523726",
+    "gpt-5": "983bc566-b783-4d28-b24c-3c8b08eb1086",
+    "nano-banana": "e4e58f18-c04f-47cd-8d11-4b2ece7b617e:image"
+}
+```
+3. 编辑文件为：
+```json
+{
+    "gemini-2.5-pro": "e2d9d353-6dbe-4414-bf87-bd289d523726",
+    "gpt-5": "983bc566-b783-4d28-b24c-3c8b08eb1086",
+    "nano-banana": "e4e58f18-c04f-47cd-8d11-4b2ece7b617e:image",
+    "flux-1-kontext-pro": "43390b9c-cf16-4e4e-a1be-3355bb5b6d5e:image"
+}
+```
+> 注意：末尾有 `:image` 的表示这是图像模型
+4. 保存文件
 
-本重构代码是原始项目 [astrbot_plugin_lmarena](https://github.com/Zhalslar/astrbot_plugin_lmarena) 的衍生作品，
-遵循 GPL-3.0 许可证要求发布。
+### 第四步：重启服务
+
+1. 关闭所有刚才打开的 python 后端
+2. 重新运行：`python api_server.py`
+3. 不出意外，你就可以直接调用 API 了！
+
+
+## ⚠️ 重要注意事项
+
+1. **保持浏览器页面开启**：在运行过程中，需要保持浏览器页面一直开着，否则会报错
+2. **Cloudflare 验证**：浏览器页面可能会遇到 CF 拦截，需要手动完成 CF 的验证，以保持后端正常运行
+3. **Request Entity Too Large 错误**：有时候 python 后端报错 `Request Entity Too Large`，可能就是因为遇到了 CF 验证，需要手动过验证
+
+## 🔧 常见问题
+
+### Q: 提示 "Internal Server Error"
+**A:** 通常是图片格式问题，插件会自动处理 GIF 转换，请稍后重试。
+
+### Q: 提示 "Request Entity Too Large"
+**A:** 
+- 如果图片小于 5MB：检查浏览器是否遇到 Cloudflare 验证
+- 如果图片大于 5MB：请使用更小的图片
+
+### Q: 生成失败
+**A:** 
+1. 确保浏览器页面保持打开
+2. 检查 Python 后端是否正常运行
+3. 完成 Cloudflare 人机验证（如有）

@@ -1,29 +1,25 @@
 {
-  "name": "koishi-plugin-lmarena",
-  "description": "AstrBot 的 LMArena 插件的 Koishi 移植版。",
-  "homepage": "https://github.com/HydroGest/lmarena",
-  "version": "0.0.1",
+  "name": "koishi-plugin-lmarena-ai",
+  "description": "[<ruby>**使用 lmarena-ai 绘画**<rp>（</rp><rt>点我查看效果预览图</rt><rp>）</rp></ruby>](https://i0.hdslb.com/bfs/openplatform/918ac2859b603fdeb74030a32c98cf4d2a19c8c8.png) 手办化插件。用户输入一张图，自动返回手办化的重绘图片。",
+  "version": "1.0.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "dist"
+    "src"
   ],
-  "license": "GPL-3.0",
+  "license": "MIT",
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "手办化"
   ],
+  "homepage": "https://github.com/shangxueink/koishi-shangxue-apps/tree/main/",
+  "bugs": {
+    "url": "https://github.com/shangxueink/koishi-shangxue-apps/issues"
+  },
   "peerDependencies": {
     "koishi": "^4.18.7"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/HydroGest/lmarena.git"
-  },
-  "dependencies": {
-    "axios": "^1.11.0",
-    "sharp": "^0.34.3"
   }
 }
