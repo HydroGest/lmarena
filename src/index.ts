@@ -4,47 +4,62 @@ import { } from 'koishi-plugin-puppeteer'
 export const name = 'lmarena'
 export const inject = ['http', 'logger', 'i18n', 'puppeteer']
 
+const defaultCommands = [
+  {
+    name: '手办化',
+    prompt: 'Your task is to create a photorealistic, masterpiece-quality image of a 1/7 scale commercialized figurine based on the user\'s character. The final image must be in a realistic style and environment.\n\n**Crucial Instruction on Face & Likeness:** The figurine\'s face is the most critical element. It must be a perfect, high-fidelity 3D translation of the character from the source image. The sculpt must be sharp, clean, and intricately detailed, accurately capturing the original artwork\'s facial structure, eye style, expression, and hair. The final result must be immediately recognizable as the same character, elevated to a premium physical product standard. Do NOT generate a generic or abstract face.\n\n**Scene Composition (Strictly follow these details):**\n1. **Figurine & Base:** Place the figure on a computer desk. It must stand on a simple, circular, transparent acrylic base WITHOUT any text or markings.\n2. **Computer Monitor:** In the background, a computer monitor must display 3D modeling software (like ZBrush or Blender) with the digital sculpt of the very same figurine visible on the screen.\n3. **Artwork Display:** Next to the computer screen, include a transparent acrylic board with a wooden base. This board holds a print of the original 2D artwork that the figurine is based on.\n4. **Environment:** The overall setting is a desk, with elements like a keyboard to enhance realism. The lighting should be natural and well-lit, as if in a room.',
+    enabled: true
+  },
+  {
+    name: '手办化2',
+    prompt: 'Use the nano-banana model to create a 1/7 scale commercialized figure of thecharacter in the illustration, in a realistic styie and environment.Place the figure on a computer desk, using a circular transparent acrylic basewithout any text.On the computer screen, display the ZBrush modeling process of the figure.Next to the computer screen, place a BANDAl-style toy packaging box printedwith the original artwork.',
+    enabled: true
+  },
+  {
+    name: '手办化3',
+    prompt: 'Your primary mission is to accurately convert the subject from the user\'s photo into a photorealistic, masterpiece quality, 1/7 scale PVC figurine, presented in its commercial packaging.\n\n**Crucial First Step: Analyze the image to identify the subject\'s key attributes (e.g., human male, human female, animal, specific creature) and defining features (hair style, clothing, expression). The generated figurine must strictly adhere to these identified attributes.** This is a mandatory instruction to avoid generating a generic female figure.\n\n**Top Priority - Character Likeness:** The figurine\'s face MUST maintain a strong likeness to the original character. Your task is to translate the 2D facial features into a 3D sculpt, preserving the identity, expression, and core characteristics. If the source is blurry, interpret the features to create a sharp, well-defined version that is clearly recognizable as the same character.\n\n**Scene Details:**\n1. **Figurine:** The figure version of the photo I gave you, with a clear representation of PVC material, placed on a round plastic base.\n2. **Packaging:** Behind the figure, there should be a partially transparent plastic and paper box, with the character from the photo printed on it.\n3. **Environment:** The entire scene should be in an indoor setting with good lighting.',
+    enabled: true
+  },
+  {
+    name: 'coser化',
+    prompt: 'Create a realistic cosplay photograph of the character in the image. The cosplayer should be wearing a high-quality costume that accurately replicates the character\'s outfit. Include appropriate props and background setting that matches the character\'s universe. Focus on accurate representation of costume details and realistic materials.',
+    enabled: true
+  },
+  {
+    name: 'mc化',
+    prompt: 'Transform the image into a Minecraft-style character. Create a blocky, pixelated version of the character using Minecraft\'s visual style. Include appropriate Minecraft environment and elements in the background.',
+    enabled: true
+  }
+]
+
+interface CommandConfig {
+  name: string
+  prompt: string
+  enabled: boolean
+}
+
 export const Config: Schema = Schema.intersect([
   Schema.object({
-    commandName: Schema.string().default('手办化').description('指令名称'),
+    commands: Schema.array(
+      Schema.object({
+        name: Schema.string().required().description('指令名称'),
+        prompt: Schema.string().role('textarea', { rows: [6, 4] }).description('该指令对应的提示词'),
+        enabled: Schema.boolean().default(true).description('是否启用该指令'),
+      })
+    )
+    .description('指令配置')
+    .default(defaultCommands as CommandConfig[]),
+    
     waitTimeout: Schema.number().default(50).max(120).min(10).step(1).description("等待输入图片的最大时间（秒）"),
   }).description('基础配置'),
+  
   Schema.object({
     baseUrl: Schema.string().default('http://127.0.0.1:5102/v1/chat/completions').role('link').description('LMarenaBridge API 服务器地址'),
     model: Schema.string().default('flux-1-kontext-pro').description('使用的模型名称'),
     maxRetries: Schema.number().default(10).description('最大轮询次数'),
     retryInterval: Schema.number().default(5 * 1000).description('轮询间隔(毫秒)'),
-    promptmap: Schema.union([
-      Schema.const('1').description('1'),
-      Schema.const('2').description('2'),
-      Schema.const('3').description('3'),
-      Schema.const('4').description('4'),
-    ]).description('默认预设的提示词').default("1"),
   }).description('请求设置'),
-  Schema.union([
-    Schema.object({
-      promptmap: Schema.const('1'),
-      prompt: Schema.string().role('textarea', { rows: [6, 4] }).default('Please turn this photo into a figure. Behind it, there should be a partially transparent plastic paper box with the character from this photo printed on it. In front of the box, on a round plastic base, place the figure version of the photo I gave you. I\'d like the PVC material to be clearly represented. It would be even better if the background is indoors.')
-        .description('AI 绘制提示词'),
-    }),
-    Schema.object({
-      promptmap: Schema.const('2').required(),
-      prompt: Schema.string().role('textarea', { rows: [6, 4] }).default("Your task is to create a photorealistic, masterpiece-quality image of a 1/7 scale commercialized figurine based on the user's character. The final image must be in a realistic style and environment.\n\n**Crucial Instruction on Face & Likeness:** The figurine's face is the most critical element. It must be a perfect, high-fidelity 3D translation of the character from the source image. The sculpt must be sharp, clean, and intricately detailed, accurately capturing the original artwork's facial structure, eye style, expression, and hair. The final result must be immediately recognizable as the same character, elevated to a premium physical product standard. Do NOT generate a generic or abstract face.\n\n**Scene Composition (Strictly follow these details):**\n1. **Figurine & Base:** Place the figure on a computer desk. It must stand on a simple, circular, transparent acrylic base WITHOUT any text or markings.\n2. **Computer Monitor:** In the background, a computer monitor must display 3D modeling software (like ZBrush or Blender) with the digital sculpt of the very same figurine visible on the screen.\n3. **Artwork Display:** Next to the computer screen, include a transparent acrylic board with a wooden base. This board holds a print of the original 2D artwork that the figurine is based on.\n4. **Environment:** The overall setting is a desk, with elements like a keyboard to enhance realism. The lighting should be natural and well-lit, as if in a room.")
-        .description('AI 绘制提示词'),
-    }),
-    Schema.object({
-      promptmap: Schema.const('3').required(),
-      prompt: Schema.string().role('textarea', { rows: [6, 4] }).default("Use the nano-banana model to create a 1/7 scale commercialized figure of thecharacter in the illustration, in a realistic styie and environment.Place the figure on a computer desk, using a circular transparent acrylic basewithout any text.On the computer screen, display the ZBrush modeling process of the figure.Next to the computer screen, place a BANDAl-style toy packaging box printedwith the original artwork.")
-        .description('AI 绘制提示词'),
-    }),
-    Schema.object({
-      promptmap: Schema.const('4').required(),
-      prompt: Schema.string().role('textarea', { rows: [6, 4] }).default("Your primary mission is to accurately convert the subject from the user's photo into a photorealistic, masterpiece quality, 1/7 scale PVC figurine, presented in its commercial packaging.\n\n**Crucial First Step: Analyze the image to identify the subject's key attributes (e.g., human male, human female, animal, specific creature) and defining features (hair style, clothing, expression). The generated figurine must strictly adhere to these identified attributes.** This is a mandatory instruction to avoid generating a generic female figure.\n\n**Top Priority - Character Likeness:** The figurine's face MUST maintain a strong likeness to the original character. Your task is to translate the 2D facial features into a 3D sculpt, preserving the identity, expression, and core characteristics. If the source is blurry, interpret the features to create a sharp, well-defined version that is clearly recognizable as the same character.\n\n**Scene Details:**\n1. **Figurine:** The figure version of the photo I gave you, with a clear representation of PVC material, placed on a round plastic base.\n2. **Packaging:** Behind the figure, there should be a partially transparent plastic and paper box, with the character from the photo printed on it.\n3. **Environment:** The entire scene should be in an indoor setting with good lighting.")
-        .description('AI 绘制提示词'),
-    }),
-    Schema.object({}),
-  ]),
-
+  
   Schema.object({
     loggerinfo: Schema.boolean().default(false).description("日志调试模式"),
   }).description('调试设置'),
@@ -66,107 +81,112 @@ export const usage = `
 ---
 `;
 
-const logger = new Logger('DEV:lmarena')
+const logger = new Logger('lmarena')
 
-export function apply(ctx: Context, config) {
+export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: string]: any }) {
   let isActive = true
 
   ctx.on('dispose', () => {
     isActive = false
   })
 
+  // 定义多语言
   ctx.i18n.define("zh-CN", {
-    commands: {
-      [config.commandName]: {
-        description: "将图片转换为手办风格",
-        messages: {
-          waitprompt: '请在{0}秒内发送一张图片...',
-          invalidimage: '未检测到有效的图片，请重新发送带图片的消息',
-          processing: '正在处理图片，请稍候...',
-          failed: '图片生成失败，请稍后重试',
-          error: '处理过程中发生错误，请稍后重试'
-        },
+    'lmarena': {
+      description: '将图片转换为特定风格',
+      messages: {
+        waitprompt: '请在{0}秒内发送一张图片...',
+        invalidimage: '未检测到有效的图片，请重新发送带图片的消息',
+        processing: '正在处理图片，请稍候...',
+        failed: '图片生成失败，请稍后重试',
+        error: '处理过程中发生错误，请稍后重试'
       },
     }
   })
 
-  ctx.command(`${config.commandName} [...args]`)
-    .action(async ({ session, args }) => {
-      if (!isActive || !ctx.scope.isActive) {
-        return
-      }
-      if (!session) return
-
-      let src: string | undefined;
-
-      for (const arg of args) {
-        if (arg && typeof arg === 'string') {
-          const imgSrc = h.select(arg, 'img').map(item => item.attrs.src)[0] ||
-            h.select(arg, 'mface').map(item => item.attrs.url)[0];
-          if (imgSrc) {
-            src = imgSrc;
-            break;
-          }
-        }
-      }
-
-      // 检查消息内容中是否有图片
-      if (!src) {
-        src = h.select(session.content, 'img').map(item => item.attrs.src)[0] ||
-          h.select(session.content, 'mface').map(item => item.attrs.url)[0];
-      }
-
-      // 检查引用消息中是否有图片
-      if (!src && session.quote) {
-        src = h.select(session.quote.content, 'img').map(item => item.attrs.src)[0] ||
-          h.select(session.quote.content, 'mface').map(item => item.attrs.url)[0];
-      }
-
-      if (!src) {
-        // 再次检查上下文状态
+  // 注册所有启用的命令
+  for (const cmdConfig of config.commands) {
+    if (!cmdConfig.enabled) continue;
+    
+    ctx.command(cmdConfig.name, '将图片转换为特定风格')
+      .usage(`使用 ${cmdConfig.name} 风格处理图片`)
+      .action(async ({ session, args }) => {
         if (!isActive || !ctx.scope.isActive) {
           return
         }
+        if (!session) return
 
-        const [msgId] = await session.send(session.text(".waitprompt", [config.waitTimeout]))
-        const promptcontent = await session.prompt(config.waitTimeout * 1000)
-        if (promptcontent !== undefined) {
-          src = h.select(promptcontent, 'img')[0]?.attrs.src || h.select(promptcontent, 'mface')[0]?.attrs.url
+        let src: string | undefined;
+
+        for (const arg of args) {
+          if (arg && typeof arg === 'string') {
+            const imgSrc = h.select(arg, 'img').map(item => item.attrs.src)[0] ||
+              h.select(arg, 'mface').map(item => item.attrs.url)[0];
+            if (imgSrc) {
+              src = imgSrc;
+              break;
+            }
+          }
         }
-        try {
-          await session.bot.deleteMessage(session.channelId, msgId)
-        } catch {
-          ctx.logger.warn(`在频道 ${session.channelId} 尝试撤回消息ID ${msgId} 失败。`)
+
+        // 检查消息内容中是否有图片
+        if (!src) {
+          src = h.select(session.content, 'img').map(item => item.attrs.src)[0] ||
+            h.select(session.content, 'mface').map(item => item.attrs.url)[0];
         }
-      }
 
-      const quote = h.quote(session.messageId)
+        // 检查引用消息中是否有图片
+        if (!src && session.quote) {
+          src = h.select(session.quote.content, 'img').map(item => item.attrs.src)[0] ||
+            h.select(session.quote.content, 'mface').map(item => item.attrs.url)[0];
+        }
 
-      if (!src) {
-        await session.send(`${quote}${session.text(".invalidimage")}`);
-        return
-      } else {
-        logInfo(src);
-      }
+        if (!src) {
+          // 再次检查上下文状态
+          if (!isActive || !ctx.scope.isActive) {
+            return
+          }
 
-      try {
-        await session.send(quote + session.text('.processing'))
-        const file = await ctx.http.file(src)
-        logInfo(file)
-        const result = await generateFigureImage(file)
+          const [msgId] = await session.send(session.text("lmarena.messages.waitprompt", [config.waitTimeout]))
+          const promptcontent = await session.prompt(config.waitTimeout * 1000)
+          if (promptcontent !== undefined) {
+            src = h.select(promptcontent, 'img')[0]?.attrs.src || h.select(promptcontent, 'mface')[0]?.attrs.url
+          }
+          try {
+            await session.bot.deleteMessage(session.channelId, msgId)
+          } catch {
+            ctx.logger.warn(`在频道 ${session.channelId} 尝试撤回消息ID ${msgId} 失败。`)
+          }
+        }
 
-        if (result) {
-          return h.image(result)
+        const quote = h.quote(session.messageId)
+
+        if (!src) {
+          await session.send(`${quote}${session.text("lmarena.messages.invalidimage")}`);
+          return
         } else {
-          return session.text('.failed')
+          logInfo(`[${cmdConfig.name}] 图片源: ${src}`);
         }
-      } catch (error) {
-        ctx.logger.error('处理图片时发生错误:', error)
-        return session.text('.error')
-      }
-    })
 
-  async function generateFigureImage(file: any): Promise<string | null> {
+        try {
+          await session.send(quote + session.text('lmarena.messages.processing'))
+          const file = await ctx.http.file(src)
+          logInfo(`[${cmdConfig.name}] 图片信息: ${JSON.stringify(file)}`)
+          const result = await generateFigureImage(file, cmdConfig.prompt)
+
+          if (result) {
+            return h.image(result)
+          } else {
+            return session.text('lmarena.messages.failed')
+          }
+        } catch (error) {
+          ctx.logger.error(`[${cmdConfig.name}] 处理图片时发生错误:`, error)
+          return session.text('lmarena.messages.error')
+        }
+      })
+  }
+
+  async function generateFigureImage(file: any, prompt: string): Promise<string | null> {
     try {
       let processedImageData = file.data
       let mimeType = file.mime || 'image/jpeg'
@@ -190,7 +210,7 @@ export function apply(ctx: Context, config) {
               </style>
             </head>
             <body>
-              <img id="gif" src="data:image/gif;base64,${base64Gif}" />
+              
             </body>
             </html>
           `
@@ -253,7 +273,7 @@ export function apply(ctx: Context, config) {
             content: [
               {
                 type: "text",
-                text: config.prompt
+                text: prompt
               },
               {
                 type: "image_url",
@@ -392,5 +412,4 @@ export function apply(ctx: Context, config) {
       (logger.info as (...args: any[]) => void)(...args);
     }
   }
-
 }
