@@ -22,12 +22,12 @@ const defaultCommands = [
   },
   {
     name: 'coser化',
-    prompt: 'Create a realistic cosplay photograph of the character in the image. The cosplayer should be wearing a high-quality costume that accurately replicates the character\'s outfit. Include appropriate props and background setting that matches the character\'s universe. Focus on accurate representation of costume details and realistic materials.',
+    prompt: 'Create a realistic cosplay photograph of the character in the image. The cosplayer should be wearing a high-quality costume that accurately replicates the character\'s outfit. Include appropriate props and background setting that matches the character\'s universe. Focus on accurate representation of costume details and realistic materials. Draw the picture for me with the background of a comic convention. East-asian face.',
     enabled: true
   },
   {
     name: 'mc化',
-    prompt: 'Transform the image into a Minecraft-style character. Create a blocky, pixelated version of the character using Minecraft\'s visual style. Include appropriate Minecraft environment and elements in the background.',
+    prompt: 'Transform the image into a Minecraft-style character. Create a blocky, pixelated version of the character using Minecraft\'s visual style. Include appropriate Minecraft environment and elements in the background. The generated entities must be Minecraft-style entities or blocks/structures.',
     enabled: true
   }
 ]
@@ -59,6 +59,17 @@ export const Config: Schema = Schema.intersect([
     maxRetries: Schema.number().default(10).description('最大轮询次数'),
     retryInterval: Schema.number().default(5 * 1000).description('轮询间隔(毫秒)'),
   }).description('请求设置'),
+  
+  // 添加后备方案配置
+  Schema.object({
+    enableFallback: Schema.boolean().default(false).description('启用后备API方案（使用正规API）'),
+    fallbackBaseUrl: Schema.string().default('https://api.openai.com/v1/chat/completions').role('link').description('后备API服务器地址'),
+    fallbackModel: Schema.string().default('gpt-4-vision-preview').description('后备方案使用的模型'),
+    fallbackApiKey: Schema.string().description('后备API密钥').role('secret'),
+    fallbackMaxRetries: Schema.number().default(3).description('后备方案的最大重试次数'),
+    fallbackRetryInterval: Schema.number().default(1000).description('后备方案的轮询间隔(毫秒)'),
+    fallbackErrorCodes: Schema.array(Schema.number()).default([500, 429]).description('触发后备方案的状态码'),
+  }).description('后备方案设置'),
   
   Schema.object({
     loggerinfo: Schema.boolean().default(false).description("日志调试模式"),
@@ -99,7 +110,8 @@ export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: s
         invalidimage: '未检测到有效的图片，请重新发送带图片的消息',
         processing: '正在处理图片，请稍候...',
         failed: '图片生成失败，请稍后重试',
-        error: '处理过程中发生错误，请稍后重试'
+        error: '处理过程中发生错误，请稍后重试',
+        fallback: '原始方案失败，正在尝试后备方案...'
       },
     }
   })
@@ -210,7 +222,7 @@ export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: s
               </style>
             </head>
             <body>
-              
+              <img id="gif" src="data:image/gif;base64,${base64Gif}" />
             </body>
             </html>
           `
@@ -312,6 +324,7 @@ export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: s
       // 发送请求到 LMArena Bridge API
       let retryCount = 0
       let errorMsg = null
+      let lastStatusCode = 0
 
       while (retryCount <= config.maxRetries) {
         // 在每次重试前检查上下文状态
@@ -353,6 +366,7 @@ export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: s
         } catch (error) {
           retryCount++
           const errorMessage = error.message || error.toString()
+          lastStatusCode = error.response?.status || 0
 
           if (config.loggerinfo) {
             logger.error(`请求失败 (${retryCount}/${config.maxRetries}): ${errorMessage}`)
@@ -361,7 +375,7 @@ export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: s
           // 检查是否为 Internal Server Error，如果是则停止重试
           if (errorMessage.includes('Internal Server Error')) {
             logger.error('遇到 Internal Server Error，停止重试')
-            return null
+            break
           }
 
           // 检查是否为 Request Entity Too Large 错误
@@ -399,12 +413,104 @@ export function apply(ctx: Context, config: { commands: CommandConfig[]; [key: s
         }
       }
 
+      // 原始方案失败后尝试后备方案
+      if (config.enableFallback && 
+          (config.fallbackErrorCodes.includes(lastStatusCode) || retryCount > config.maxRetries)) {
+        logger.info('原始方案失败，尝试使用后备方案...')
+        return tryFallbackApi(requestBody, prompt)
+      }
+
       logger.error(`达到最大重试次数 (${config.maxRetries})，最后错误: ${errorMsg}`)
       return null
     } catch (error) {
       logger.error(`生成图片时发生错误: ${error}`)
       return null
     }
+  }
+
+  async function tryFallbackApi(requestBody: any, prompt: string): Promise<string | null> {
+    let fallbackRetryCount = 0
+    const fallbackConfig = {
+      baseUrl: config.fallbackBaseUrl,
+      model: config.fallbackModel,
+      apiKey: config.fallbackApiKey,
+      maxRetries: config.fallbackMaxRetries,
+      retryInterval: config.fallbackRetryInterval
+    }
+
+    // 更新请求体使用后备模型
+    const fallbackRequestBody = {
+      ...requestBody,
+      model: fallbackConfig.model
+    }
+
+    while (fallbackRetryCount <= fallbackConfig.maxRetries) {
+      if (!isActive || !ctx.scope.isActive) {
+        logger.info('插件已卸载，停止后备方案重试')
+        return null
+      }
+
+      try {
+        if (config.loggerinfo) {
+          logger.info(`使用后备方案发送请求到 ${fallbackConfig.baseUrl}，第 ${fallbackRetryCount + 1} 次尝试`)
+        }
+
+        const response = await ctx.http.post(fallbackConfig.baseUrl, fallbackRequestBody, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${fallbackConfig.apiKey}`
+          }
+        })
+
+        // 处理响应
+        if (response && response.choices && response.choices[0] && response.choices[0].message) {
+          const message = response.choices[0].message
+
+          if (message.content) {
+            const markdownMatch = message.content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/)
+            if (markdownMatch && markdownMatch[1]) {
+              const imageUrl = markdownMatch[1]
+              if (config.loggerinfo) {
+                logger.info(`后备方案成功获取图片URL: ${imageUrl}`)
+              }
+              return imageUrl
+            }
+          }
+        }
+
+        const errorMsg = '后备方案响应中未找到图片URL'
+        throw new Error(errorMsg)
+      } catch (error) {
+        fallbackRetryCount++
+        const errorMessage = error.message || error.toString()
+        const statusCode = error.response?.status || 0
+
+        if (config.loggerinfo) {
+          logger.error(`后备方案请求失败 (${fallbackRetryCount}/${fallbackConfig.maxRetries}): ${errorMessage}`)
+        }
+
+        // 检查是否为配额不足错误
+        if (errorMessage.includes('insufficient_quota') || statusCode === 429) {
+          logger.error('后备方案API配额不足，停止重试')
+          return null
+        }
+
+        if (fallbackRetryCount <= fallbackConfig.maxRetries) {
+          if (config.loggerinfo) {
+            logger.info(`等待 ${fallbackConfig.retryInterval}ms 后重试后备方案`)
+          }
+          await sleep(fallbackConfig.retryInterval)
+          if (!isActive || !ctx.scope.isActive) {
+            logger.info('插件已卸载，停止后备方案重试')
+            return null
+          }
+        } else {
+          logger.error('后备方案达到最大重试次数，放弃')
+          return null
+        }
+      }
+    }
+    return null
   }
 
   function logInfo(...args: any[]) {
